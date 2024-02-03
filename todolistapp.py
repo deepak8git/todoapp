@@ -7,11 +7,6 @@ from kivymd.uix.button import MDFlatButton
 from kivy.uix.boxlayout import BoxLayout
 import sqlite3
 
-# with sqlite3.connect("todo.db") as conn:
-#     command= "create table if not exists todo (id text, task text)"
-#     conn.execute(command)
-#     conn.commit()
-
 KV="""
 MDBoxLayout:    
     orientation:"vertical"
