@@ -24,7 +24,7 @@ MDBoxLayout:
             hint_text:"insert you text here"
             mode:"fill"
             required:True
-            size_hint_x:0.6
+            size_hint_x:0.6            
         
         MDRaisedButton:
             text:"Add"
@@ -150,7 +150,7 @@ class ToDoListApp(MDApp):
                     text=record
                 ) 
             )
-           
+            self.screen.ids.inputtodo.focus=True
             self.db_handler.insert_record(item_id,record)
 
         self.screen.ids.inputtodo.text=""
