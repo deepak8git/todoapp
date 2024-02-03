@@ -1,22 +1,16 @@
 from kivymd.app import MDApp
 from kivy.lang.builder import Builder
-#from kivy.core.window import Window
 import uuid
 from kivymd.uix.list import OneLineAvatarIconListItem,IconLeftWidget,IconRightWidget
-from kivymd.uix.textfield import MDTextField
-from kivymd.uix.boxlayout import MDBoxLayout
-from kivy.uix.label import Label
 from kivymd.uix.dialog import MDDialog
 from kivymd.uix.button import MDFlatButton
 from kivy.uix.boxlayout import BoxLayout
 import sqlite3
-#Window.size=(400,700)
 
-conn=sqlite3.connect("todo.db")
-command= "create table if not exists todo (id text, task text)"
-conn.execute(command)
-conn.commit()
-
+# with sqlite3.connect("todo.db") as conn:
+#     command= "create table if not exists todo (id text, task text)"
+#     conn.execute(command)
+#     conn.commit()
 
 KV="""
 MDBoxLayout:    
@@ -61,9 +55,40 @@ MDBoxLayout:
 class Content(BoxLayout):
     pass
 
+class DatabaseHandler:
+    def __init__(self):
+        self.conn=sqlite3.connect("todo.db")
+        command="CREATE TABLE IF NOT EXISTS todo (id TEXT, task TEXT)"
+        self.conn.execute(command)
+        self.conn.commit() 
+
+    def insert_record(self,item_id,record):
+        self.conn.execute("INSERT INTO todo (id,task) VALUES (?,?)",(item_id,record))
+        self.conn.commit()        
+    
+    def update_record(self, item_id,value):        
+        self.conn.execute("UPDATE todo SET task = ? WHERE id = ?", (value, item_id))       
+        self.conn.commit()
+
+    def delete_record(self,item_id):
+        self.conn.execute("DELETE FROM todo WHERE id = ?",(item_id,))
+        self.conn.commit()
+
+    def fetch_all_record(self):
+        cursor=self.conn.execute("SELECT * FROM todo")
+        records=cursor.fetchall()    
+        return records
+
+    def close_connection(self):
+        self.conn.close()
+
+
+
 class ToDoListApp(MDApp):
+
     def __init__(self,**kwargs):
         super().__init__(**kwargs)
+        self.db_handler=DatabaseHandler()
         self.all_record=[]
         self.mydialog=None
 
@@ -72,34 +97,24 @@ class ToDoListApp(MDApp):
         self.screen = Builder.load_string(KV)        
         return self.screen
     
-    def on_start(self):
-        
+    def on_start(self):        
         self.loadrecord()
     
     def loadrecord(self):
-        #print("task started")
-        cursor=conn.execute('SELECT * FROM todo ORDER BY id DESC')
-        task=cursor.fetchall()
-        
-        #print(task)
+        task=self.db_handler.fetch_all_record()
+
         todolist=self.screen.ids.todolist        
         for row in task:   
-            self.all_record.append(
-                {"value":row[1],"id":row[0]}
-            )
+            self.all_record.append({"value":row[1],"id":row[0]})        
 
-        for x in self.all_record:   
-
-            ids=x['id']
-            values=x['value']
-
-            print(type(ids))
+            ids=row[0]
+            values=row[1]
 
             todolist.add_widget(
                 OneLineAvatarIconListItem(
                     IconLeftWidget(
                         icon="pencil",
-                        on_release=lambda x,item_id=ids: self.editbtn(item_id)
+                        on_release=lambda x,item_id=ids,data=values: self.editbtn(item_id,data)
                     ),
                     IconRightWidget(
                         icon="delete",
@@ -123,17 +138,14 @@ class ToDoListApp(MDApp):
             item_id=str(uuid.uuid4())
             self.all_record.append(
                 {"value":record,"id":item_id}
-            )
+            )          
 
-            print(type(item_id))
-
-            todolist=self.screen.ids.todolist
-            
+            todolist=self.screen.ids.todolist            
             todolist.add_widget(
                 OneLineAvatarIconListItem(
                     IconLeftWidget(
-                        icon="pencil",
-                        on_release=lambda x:self.editbtn(item_id)
+                        icon="pencil",                        
+                        on_release=lambda x: self.editbtn(item_id,record)
                     ),
                     IconRightWidget(
                         icon="delete",
@@ -144,12 +156,11 @@ class ToDoListApp(MDApp):
                 ) 
             )
            
-            conn.execute("insert into todo (id,task) values(?,?)",(item_id,record))
-            conn.commit()
+            self.db_handler.insert_record(item_id,record)
 
         self.screen.ids.inputtodo.text=""
 
-    def editbtn(self,dataid):
+    def editbtn(self,dataid,value):
         if not self.mydialog:
             self.dialog=MDDialog(
                 title="Update Data",
@@ -162,16 +173,14 @@ class ToDoListApp(MDApp):
                         text_color="red",
                         on_release=lambda x:self.saverecord(dataid,self.dialog.content_cls.ids.edittext1.text)                        
                     )
-                ]
+                ]            
             )
-               
-        self.dialog.open()
-        #self.dialog.content_cls.ids.edittext1.text=dataid
+            self.dialog.content_cls.ids.edittext1.text=value
+
+        self.dialog.open()   
       
 
-
     def saverecord(self,dataid,value):
-
         
         self.dialog.dismiss()
 
@@ -183,9 +192,8 @@ class ToDoListApp(MDApp):
         for child in todolist.children:
             if child.id==dataid:
                 child.text=value
-        conn.execute('UPDATE todo SET task = ?  WHERE id = ?', (value, dataid))
-        conn.commit()
-        print(dataid)
+
+        self.db_handler.update_record(dataid,value)
 
 
     def deletebtn(self,dataid):
@@ -199,8 +207,8 @@ class ToDoListApp(MDApp):
             if child.id==dataid:
                 todolist.remove_widget(child)
 
-        conn.execute('DELETE FROM todo WHERE id = ?', (dataid,))
-        conn.commit()
+        self.db_handler.delete_record(dataid)
+
 
 if __name__ == "__main__":
     ToDoListApp().run()
