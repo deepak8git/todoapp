@@ -5,6 +5,7 @@ from kivymd.uix.list import OneLineAvatarIconListItem,IconLeftWidget,IconRightWi
 from kivymd.uix.dialog import MDDialog
 from kivymd.uix.button import MDFlatButton
 from kivy.uix.boxlayout import BoxLayout
+from kivymd.toast.kivytoast.kivytoast import toast
 import sqlite3
 
 KV="""
@@ -84,7 +85,7 @@ class ToDoListApp(MDApp):
     def __init__(self,**kwargs):
         super().__init__(**kwargs)
         self.db_handler=DatabaseHandler()
-        self.all_record=[]
+        #self.all_record=[]
         self.mydialog=None
 
     def build(self):
@@ -100,7 +101,7 @@ class ToDoListApp(MDApp):
 
         todolist=self.screen.ids.todolist        
         for row in task:   
-            self.all_record.append({"value":row[1],"id":row[0]})        
+            #self.all_record.append({"value":row[1],"id":row[0]})        
 
             ids=row[0]
             values=row[1]
@@ -131,9 +132,9 @@ class ToDoListApp(MDApp):
        
         if record:
             item_id=str(uuid.uuid4())
-            self.all_record.append(
-                {"value":record,"id":item_id}
-            )          
+            # self.all_record.append(
+            #     {"value":record,"id":item_id}
+            # )          
 
             todolist=self.screen.ids.todolist            
             todolist.add_widget(
@@ -152,6 +153,7 @@ class ToDoListApp(MDApp):
             )
             self.screen.ids.inputtodo.focus=True
             self.db_handler.insert_record(item_id,record)
+            toast("New Record Added Successfully")
 
         self.screen.ids.inputtodo.text=""
 
@@ -179,9 +181,9 @@ class ToDoListApp(MDApp):
         
         self.dialog.dismiss()
 
-        for x in self.all_record:
-            if x["id"]==dataid:
-                x["value"]=value
+        # for x in self.all_record:
+        #     if x["id"]==dataid:
+        #         x["value"]=value
 
         todolist=self.screen.ids.todolist
         for child in todolist.children:
@@ -189,13 +191,13 @@ class ToDoListApp(MDApp):
                 child.text=value
 
         self.db_handler.update_record(dataid,value)
-
+        toast("Record Updated Successfully")
 
     def deletebtn(self,dataid):
         
-        for x in self.all_record:
-            if x["id"]==dataid:
-                self.all_record.remove(x)
+        # for x in self.all_record:
+        #     if x["id"]==dataid:
+        #         self.all_record.remove(x)
 
         todolist=self.screen.ids.todolist
         for child in todolist.children:
@@ -203,6 +205,7 @@ class ToDoListApp(MDApp):
                 todolist.remove_widget(child)
 
         self.db_handler.delete_record(dataid)
+        toast("Record Deleted Successfully")
 
 
 if __name__ == "__main__":
